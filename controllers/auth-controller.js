@@ -1,31 +1,26 @@
 const asyncHandler = require("express-async-handler");
 const { generateToken } = require("../config/jwtToken");
 
-const User = require('../models/userModel');
+const { successResponseHandler } = require("../helpers/success-response-handler");
 
-const createUser = asyncHandler(async (req, res) => {
+const User = require('../models/user-model');
 
-    const findUser = await User.findOne({ email: req.body.email });
+const registerUser = asyncHandler(async (req, res) => {
 
-    if (!findUser) {
-        //Create a new user
-        const newUser = await User.create(req.body);
+    try {
+        const findUser = await User.findOne({ email: req.body.email });
 
-        res.json({
-            msg: "User Created successfully",
-            success: true,
-            statusCode: 201,
-            user: newUser
-        });
+        if (!findUser) {
 
-    } else {
-        //User already exists
-        // res.json({
-        //     msg: "User already exists",
-        //     success: false,
-        //     statusCode: 409,
-        // });
-        throw new Error("User already exists");
+            const addNewUser = await User.create(req.body);
+
+            await successResponseHandler(res, 200, "User Created successfully!", "details", addNewUser);
+
+        } else {
+            throw new Error("User already exists");
+        }
+    } catch (error) {
+        throw error;
     }
 });
 
@@ -56,5 +51,4 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 });
 
-
-module.exports = { createUser, loginUser };
+module.exports = { registerUser, loginUser };
