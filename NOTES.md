@@ -1,3 +1,3 @@
 #Package
 
-`npm install express mongoose bcrypt body-parser dotenv`
+`npm install --save express mongoose bcrypt body-parser dotenv express-async-handler`
