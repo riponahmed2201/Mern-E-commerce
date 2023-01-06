@@ -1,13 +1,59 @@
 const asyncHandler = require("express-async-handler");
+const { generateToken } = require("../config/jwtToken");
 
 const { successResponseHandler } = require("../helpers/success-response-handler");
 
 const User = require('../models/user-model');
 
+const registerUser = asyncHandler(async (req, res) => {
+
+    try {
+        const findUser = await User.findOne({ email: req.body.email });
+
+        if (!findUser) {
+
+            const addNewUser = await User.create(req.body);
+
+            return await successResponseHandler(res, 200, "User Created successfully!", "details", addNewUser);
+
+        } else throw new Error("User already exists");
+
+    } catch (error) {
+        throw error;
+    }
+});
+
+const loginUser = asyncHandler(async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        //Check if user exists or not
+        const findUser = await User.findOne({ email });
+
+        if (findUser && await findUser.isPasswordMatched(password)) {
+
+            const userInfo = {
+                _id: findUser?._id,
+                firstName: findUser?.firstName,
+                lastName: findUser?.lastName,
+                email: findUser?.email,
+                mobile: findUser?.mobile,
+                role: findUser?.role,
+                token: generateToken(findUser?._id)
+            };
+
+            await successResponseHandler(res, 200, "User login successfully", "userDetails", userInfo);
+
+        } else throw new Error("Invalid Credentials");
+    } catch (error) {
+        throw error;
+    }
+});
+
 //Update to the user 
 const updateUser = asyncHandler(async (req, res) => {
+    console.log("req.user : ", req.user);
     try {
-
         const { firstName, lastName, email, mobile } = req.body;
 
         const userInfo = await User.findById(req.body.id);
@@ -44,21 +90,10 @@ const updateUser = asyncHandler(async (req, res) => {
 
         if (isChanged) {
             const updateUserInfo = await user.save();
-
-            res.json({
-                msg: "User updated successfully",
-                success: true,
-                statusCode: 200,
-                user: updateUserInfo
-            });
+            return await successResponseHandler(res, 200, "User updated successfully!", "details", updateUserInfo);
         }
 
-        res.json({
-            msg: "User updated successfully",
-            success: true,
-            statusCode: 200,
-            user: userInfo
-        });
+        return await successResponseHandler(res, 200, "User updated successfully!", "details", userInfo);
 
     } catch (error) {
         throw new Error(error);
@@ -69,13 +104,7 @@ const updateUser = asyncHandler(async (req, res) => {
 const getAllUser = asyncHandler(async (req, res) => {
     try {
         const getUsers = await User.find();
-
-        res.json({
-            msg: "User list fetch successfully",
-            success: true,
-            statusCode: 200,
-            users: getUsers
-        });
+        return await successResponseHandler(res, 200, "User list fetch successfully!", "details", getUsers);
     } catch (error) {
         throw new Error(error);
     }
@@ -85,16 +114,10 @@ const getAllUser = asyncHandler(async (req, res) => {
 const getSingleUser = asyncHandler(async (req, res) => {
     try {
 
-        const { id } = req.params;
+        const getUser = await User.findById(req.params.id);
 
-        const getUser = await User.findById(id);
+        return await successResponseHandler(res, 200, "User info fetch successfully!", "details", getUser);
 
-        res.json({
-            msg: "User info fetch successfully",
-            success: true,
-            statusCode: 200,
-            user: getUser
-        });
     } catch (error) {
         throw new Error(error);
     }
@@ -104,18 +127,37 @@ const getSingleUser = asyncHandler(async (req, res) => {
 const deleteUser = asyncHandler(async (req, res) => {
     try {
 
-        const { id } = req.params;
+        const getUser = await User.findByIdAndDelete(req.params.id);
 
-        const getUser = await User.findByIdAndDelete(id);
+        return await successResponseHandler(res, 200, "User deleted successfully!", "details", getUser);
 
-        res.json({
-            msg: "User deleted successfully",
-            success: true,
-            statusCode: 200
-        });
     } catch (error) {
         throw new Error(error);
     }
 });
 
-module.exports = { getAllUser, getSingleUser, deleteUser, updateUser };
+//Block user
+const blockUser = asyncHandler(async (req, res) => {
+    try {
+        const block = await User.findByIdAndUpdate(req.params.id, { isBlocked: true }, { new: true });
+
+        return await successResponseHandler(res, 200, "User blocked successfully!", "details", block);
+
+    } catch (error) {
+        throw new Error(error);
+    }
+});
+
+//Un block user
+const unBlockUser = asyncHandler(async (req, res) => {
+    try {
+        const unBlock = await User.findByIdAndUpdate(req.params.id, { isBlocked: false }, { new: true });
+
+        return await successResponseHandler(res, 200, "User unblocked successfully!", "details", unBlock);
+
+    } catch (error) {
+        throw new Error(error);
+    }
+});
+
+module.exports = { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser };

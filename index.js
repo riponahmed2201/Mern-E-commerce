@@ -19,6 +19,10 @@ app.use(express.urlencoded({ extended: false }));
 //add routes
 app.use(router);
 
+app.all('*', (req, res) => {
+    res.send("404 Not Found");
+});
+
 app.use('/', (req, res) => {
     res.send("Hello from server side");
 });
