@@ -103,30 +103,34 @@ const handleRefreshToken = asyncHandler(async (req, res) => {
 
 
 const logout = asyncHandler(async (req, res) => {
-    const cookie = req.cookies;
+    try {
+        const cookie = req.cookies;
 
-    if (!cookie?.refreshToken) {
-        let customError = new Error("No refresh token in cookies");
-        customError.statusCode = 404;
-        throw customError;
-    }
+        if (!cookie?.refreshToken) {
+            let customError = new Error("No refresh token in cookies");
+            customError.statusCode = 404;
+            throw customError;
+        }
 
-    const refreshToken = cookie.refreshToken;
+        const refreshToken = cookie.refreshToken;
 
-    const userInfo = await User.findOne({ refreshToken });
+        const userInfo = await User.findOne({ refreshToken });
 
-    if (!userInfo) {
+        if (!userInfo) {
 
+            res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+            return await successResponseHandler(res, 204, "Access Forbidden", null, null);
+        }
+
+        await User.findOneAndUpdate(refreshToken, { refreshToken: "" });
         res.clearCookie("refreshToken", { httpOnly: true, secure: true });
 
-        return await successResponseHandler(res, 204, "Access Forbidden", null, null);
+        return await successResponseHandler(res, 204, "Logout successfully!", null, null);
+
+    } catch (error) {
+        throw error;
     }
-
-    await User.findOne(refreshToken, { refreshToken: "" });
-    res.clearCookie("refreshToken", { httpOnly: true, secure: true });
-
-    return await successResponseHandler(res, 204, "Logout successfully!", null, null);
-
 });
 
 //Update to the user 
