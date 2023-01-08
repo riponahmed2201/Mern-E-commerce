@@ -1,5 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv").config();
+const cookieParser = require("cookie-parser");
 
 const dbConnect = require("./config/dbConnect");
 
@@ -15,6 +16,7 @@ dbConnect();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser())
 
 //add routes
 app.use(router);

@@ -1,5 +1,8 @@
 const asyncHandler = require("express-async-handler");
+const jwt = require("jsonwebtoken");
+
 const { generateToken } = require("../config/jwtToken");
+const { generateRefreshToken } = require("../config/refreshToken");
 
 const { successResponseHandler } = require("../helpers/success-response-handler");
 
@@ -7,7 +10,6 @@ const User = require('../models/user-model');
 const validateMongoDbId = require("../utils/validationMongodbId");
 
 const registerUser = asyncHandler(async (req, res) => {
-
     try {
         const findUser = await User.findOne({ email: req.body.email });
 
@@ -33,6 +35,14 @@ const loginUser = asyncHandler(async (req, res) => {
 
         if (findUser && await findUser.isPasswordMatched(password)) {
 
+            const refreshToken = await generateRefreshToken(findUser?._id);
+            const updateUser = await User.findByIdAndUpdate(findUser?._id, { refreshToken: refreshToken, }, { new: true });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                maxAge: 72 * 60 * 60 * 1000
+            });
+
             const userInfo = {
                 _id: findUser?._id,
                 firstName: findUser?.firstName,
@@ -40,7 +50,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 email: findUser?.email,
                 mobile: findUser?.mobile,
                 role: findUser?.role,
-                token: generateToken(findUser?._id)
+                token: await generateToken(findUser?._id)
             };
 
             await successResponseHandler(res, 200, "User login successfully", "userDetails", userInfo);
@@ -49,6 +59,74 @@ const loginUser = asyncHandler(async (req, res) => {
     } catch (error) {
         throw error;
     }
+});
+
+const handleRefreshToken = asyncHandler(async (req, res) => {
+    try {
+        const cookie = req.cookies;
+
+        if (!cookie?.refreshToken) {
+            let customError = new Error("No refresh token in cookies");
+            customError.statusCode = 404;
+            throw customError;
+        }
+
+        const refreshToken = cookie.refreshToken;
+
+        const userInfo = await User.findOne({ refreshToken });
+
+        if (!userInfo) {
+            let customError = new Error("No refresh token in present in db or not matched");
+            customError.statusCode = 404;
+            throw customError;
+        }
+
+        let accessToken;
+
+        // pore custom function korte hobe verifyToken() ai name a 
+        await jwt.verify(refreshToken, process.env.JWT_SECRET, async (error, decoded) => {
+            if (error || userInfo.id !== decoded.id) {
+                let customError = new Error("There is something wrong with refresh token!");
+                customError.statusCode = 404;
+                throw customError;
+            }
+
+            accessToken = await generateToken(userInfo?._id);
+        });
+
+        return await successResponseHandler(res, 200, "User access token!", "accessToken", accessToken);
+
+    } catch (error) {
+        throw error;
+    }
+});
+
+
+const logout = asyncHandler(async (req, res) => {
+    const cookie = req.cookies;
+
+    if (!cookie?.refreshToken) {
+        let customError = new Error("No refresh token in cookies");
+        customError.statusCode = 404;
+        throw customError;
+    }
+
+    const refreshToken = cookie.refreshToken;
+
+    const userInfo = await User.findOne({ refreshToken });
+
+    if (!userInfo) {
+
+        res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+        return await successResponseHandler(res, 204, "Access Forbidden", null, null);
+    }
+
+    await User.findOne(refreshToken, { refreshToken: "" });
+    res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+    return await successResponseHandler(res, 204, "Logout successfully!", null, null);
+
 });
 
 //Update to the user 
@@ -168,4 +246,4 @@ const unBlockUser = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser };
+module.exports = { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser, handleRefreshToken, logout };
