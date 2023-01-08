@@ -4,6 +4,7 @@ const { generateToken } = require("../config/jwtToken");
 const { successResponseHandler } = require("../helpers/success-response-handler");
 
 const User = require('../models/user-model');
+const validateMongoDbId = require("../utils/validationMongodbId");
 
 const registerUser = asyncHandler(async (req, res) => {
 
@@ -52,9 +53,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
 //Update to the user 
 const updateUser = asyncHandler(async (req, res) => {
-    console.log("req.user : ", req.user);
     try {
         const { firstName, lastName, email, mobile } = req.body;
+
+        await validateMongoDbId(req.body.id);
 
         const userInfo = await User.findById(req.body.id);
 
@@ -113,6 +115,7 @@ const getAllUser = asyncHandler(async (req, res) => {
 //Get a single user
 const getSingleUser = asyncHandler(async (req, res) => {
     try {
+        await validateMongoDbId(req.params.id);
 
         const getUser = await User.findById(req.params.id);
 
@@ -126,6 +129,7 @@ const getSingleUser = asyncHandler(async (req, res) => {
 //Delete user
 const deleteUser = asyncHandler(async (req, res) => {
     try {
+        await validateMongoDbId(req.params.id);
 
         const getUser = await User.findByIdAndDelete(req.params.id);
 
@@ -139,6 +143,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 //Block user
 const blockUser = asyncHandler(async (req, res) => {
     try {
+        await validateMongoDbId(req.params.id);
+
         const block = await User.findByIdAndUpdate(req.params.id, { isBlocked: true }, { new: true });
 
         return await successResponseHandler(res, 200, "User blocked successfully!", "details", block);
@@ -151,6 +157,8 @@ const blockUser = asyncHandler(async (req, res) => {
 //Un block user
 const unBlockUser = asyncHandler(async (req, res) => {
     try {
+        await validateMongoDbId(req.params.id);
+
         const unBlock = await User.findByIdAndUpdate(req.params.id, { isBlocked: false }, { new: true });
 
         return await successResponseHandler(res, 200, "User unblocked successfully!", "details", unBlock);
