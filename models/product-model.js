@@ -23,8 +23,7 @@ var productSchema = new mongoose.Schema({
     },
     category: {
         type: mongoose.Types.ObjectId,
-        ref: "Category",
-        required: true,
+        ref: "Category"
     },
     brand: {
         type: String,
@@ -36,7 +35,8 @@ var productSchema = new mongoose.Schema({
     },
     quantity: {
         type: Number,
-        default: 0
+        default: 0,
+        required: true,
     },
     images: {
         type: Array,
