@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const validateMongoDbId = async (id) => {
     const isValid = mongoose.Types.ObjectId.isValid(id);
-    if (!isValid) throw new Error("This id is not valid not Found")
+    if (!isValid) throw new Error("This id is not valid! Not Found")
 };
 
 module.exports = validateMongoDbId;
