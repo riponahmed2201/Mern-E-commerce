@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const slugify = require("slugify");
 
-const { successResponseHandler } = require("../helpers/success-response-handler");
+const { successResponseHandler, readerSuccessResponseHandler } = require("../helpers/success-response-handler");
 
 const Product = require("../models/product-model");
 const validateMongoDbId = require("../utils/validationMongodbId");
@@ -95,10 +95,21 @@ const updateProduct = asyncHandler(async (req, res) => {
 const getProductList = asyncHandler(async (req, res) => {
     try {
 
-        const products = await Product.find();
-        const totalProduct = await Product.find().count();
+        const query = {};
 
-        return await successResponseHandler(res, 200, "Product list fetch successfully!", "details", { total: totalProduct, products });
+        if (req.query && req.query.brand) query.brand = req.query.brand;
+        if (req.query && req.query.category) query.category = req.query.category;
+
+        const excludeFields = ["page", "sort", "limit", "fields"];
+
+        excludeFields.forEach((element) => delete query[element]);
+
+        // const products = await Product.where("category").equals(req.query.category);
+        const products = await Product.find(query);
+
+        const totalProduct = await Product.find(query).count();
+
+        return await readerSuccessResponseHandler(res, 200, "Product list fetch successfully!", null, { total: totalProduct, products });
 
     } catch (error) {
         throw error;
