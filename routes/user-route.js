@@ -9,7 +9,7 @@ const UserRegisterRequest = require("../requests/user-register-request");
 const UserLoginRequest = require("../requests/user-login-request");
 
 //Controller
-const { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser, handleRefreshToken, logout } = require("../controllers/user-controller");
+const { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser, handleRefreshToken, logout, updatePassword } = require("../controllers/user-controller");
 
 const userRouter = express.Router();
 
@@ -24,6 +24,9 @@ userRouter.get('/refresh-token', handleRefreshToken);
 
 //Logout
 userRouter.get('/logout', logout);
+
+//Update password
+userRouter.get('/update-password', authMiddleware, updatePassword);
 
 userRouter.put('/blocked/:id', authMiddleware, isAdmin, ValidateRequestHandler, blockUser);
 userRouter.put('/unblocked/:id', authMiddleware, isAdmin, ValidateRequestHandler, unBlockUser);

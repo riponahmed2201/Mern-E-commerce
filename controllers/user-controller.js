@@ -250,4 +250,44 @@ const unBlockUser = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { registerUser, loginUser, getAllUser, getSingleUser, deleteUser, updateUser, blockUser, unBlockUser, handleRefreshToken, logout };
+//Update password
+const updatePassword = asyncHandler(async (req, res) => {
+    try {
+
+        const { _id } = req.user;
+
+        await validateMongoDbId(_id);
+
+        const user = await User.findById(_id);
+
+        if (!user) {
+            let customError = new Error("No user found!");
+            customError.statusCode = 404;
+            throw customError;
+        }
+
+        if (req.body && req.body.password) {
+            user.password = req.body.password;
+            const updatePassword = await user.save();
+        }
+
+        return await successResponseHandler(res, 200, "User password changed successfully!");
+
+    } catch (error) {
+        throw new Error(error);
+    }
+});
+
+module.exports = {
+    registerUser,
+    loginUser,
+    getAllUser,
+    getSingleUser,
+    deleteUser,
+    updateUser,
+    blockUser,
+    unBlockUser,
+    handleRefreshToken,
+    logout,
+    updatePassword
+};
