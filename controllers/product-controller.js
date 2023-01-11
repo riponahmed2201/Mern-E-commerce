@@ -95,21 +95,53 @@ const updateProduct = asyncHandler(async (req, res) => {
 const getProductList = asyncHandler(async (req, res) => {
     try {
 
-        const query = {};
-
-        if (req.query && req.query.brand) query.brand = req.query.brand;
-        if (req.query && req.query.category) query.category = req.query.category;
+        //Filtering
+        const queryObject = { ...req.query };
 
         const excludeFields = ["page", "sort", "limit", "fields"];
 
-        excludeFields.forEach((element) => delete query[element]);
+        excludeFields.forEach((element) => delete queryObject[element]);
 
-        // const products = await Product.where("category").equals(req.query.category);
-        const products = await Product.find(query);
+        let queryString = JSON.stringify(queryObject);
+        queryString = queryString.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
 
-        const totalProduct = await Product.find(query).count();
+        let query = Product.find(JSON.parse(queryString));
 
-        return await readerSuccessResponseHandler(res, 200, "Product list fetch successfully!", null, { total: totalProduct, products });
+        //Sorting 
+        if (req.query && req.query.sort) {
+            const sortBy = req.query.sort.split(",").join(" ");
+            query = query.sort(sortBy);
+        } else {
+            query = query.sort("-createdAt");
+        }
+
+        //Limitting the fields
+        if (req.query && req.query.fields) {
+            const fields = req.query.fields.split(",").join(" ");
+            query = query.select(fields);
+        } else {
+            query = query.select("-__v");
+        }
+
+        //Pagination
+        const page = req.query.page;
+        const limit = req.query.limit;
+        const skip = (page - 1) * limit;
+
+        query = query.skip(skip).limit(limit);
+
+        if (req.query.page) {
+            const productCount = await Product.countDocuments();
+            if (skip >= productCount) {
+                let customError = new Error("This page does not exists");
+                customError.statusCode = 404;
+                throw customError;
+            }
+        }
+
+        const products = await query;
+
+        return await readerSuccessResponseHandler(res, 200, "Product list fetch successfully!", null, { products });
 
     } catch (error) {
         throw error;
