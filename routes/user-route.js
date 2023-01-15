@@ -26,7 +26,7 @@ userRouter.get('/refresh-token', handleRefreshToken);
 userRouter.get('/logout', logout);
 
 //Update password
-userRouter.get('/update-password', authMiddleware, updatePassword);
+userRouter.get('/changed-password', authMiddleware, updatePassword);
 
 userRouter.put('/blocked/:id', authMiddleware, isAdmin, ValidateRequestHandler, blockUser);
 userRouter.put('/unblocked/:id', authMiddleware, isAdmin, ValidateRequestHandler, unBlockUser);
